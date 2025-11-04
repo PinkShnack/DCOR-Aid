@@ -33,8 +33,8 @@ def test_get_collections(tmp_path):
     collections = [c["name"] for c in db.get_collections()]
     defaults = common.get_test_defaults()
     assert defaults["collection"] in collections
-    # requires that the "dcoraid" user is in figshare-collection collection
-    assert "figshare-collection" in collections
+    # requires that the "dcoraid" user is in dcoraid-collection collection
+    assert "dcoraid-collection" in collections
 
 
 def test_get_datasets_user_owned(tmp_path):
