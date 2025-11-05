@@ -3,7 +3,6 @@ import pathlib
 import time
 import threading
 import traceback
-import traceback as tb
 import warnings
 
 from ..api import APINotFoundError
@@ -158,7 +157,7 @@ class UploadQueue:
                                   f"file {pp}.",
                                   DCORAidQueueWarning)
                 except LocalTaskResourcesNotFoundError as e:
-                    self.logger.error(tb.format_exc())
+                    self.logger.error(traceback.format_exc())
                     resstr = ", ".join([str(pp) for pp in e.missing_resources])
                     warnings.warn(
                         "The following resources are missing for dataset "
@@ -179,7 +178,8 @@ class UploadQueue:
         # Attempt to update the eternal jobs (important for ETags)
         for job in self.jobs:
             try:
-                self.jobs_eternal.update_job(job)
+                if self.jobs_eternal.job_exists(job.dataset_id):
+                    self.jobs_eternal.update_job(job)
             except BaseException:
                 self.logger.error(traceback.format_exc())
         self.daemon_upload.shutdown_flag.set()
