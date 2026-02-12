@@ -51,7 +51,7 @@ class TableCellActionsDownload(QtWidgets.QWidget):
                     + "<a href='https://github.com/DCOR-dev/DCOR-Aid/issues'>"
                     + "create an issue online</a>. Click on the button below "
                       "to see details required for fixing the problem.")
-        msg.setWindowTitle(f"Job {self.job.dataset_id[:5]} error")
+        msg.setWindowTitle(f"Job {self.job.job_id[:5]} error")
         msg.setDetailedText(self.job.traceback)
         msg.exec()
 

@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from unittest import mock
 import uuid
@@ -19,6 +20,47 @@ def test_initialize():
                          resource_id=ds_dict["resources"][0]["id"],
                          download_path=td)
     assert dj.state == "init"
+
+
+def test_download_deleted_directory():
+    api = common.get_api()
+    td = tempfile.mkdtemp(prefix="test-download")
+    ds_dict = common.make_dataset_for_download()
+    dj = job.DownloadJob(api=api,
+                         resource_id=ds_dict["resources"][0]["id"],
+                         download_path=td)
+    # sanity check
+    assert dj.get_status()["bytes total"] == 899298
+    dj_state = dj.__getstate__()
+
+    # delete the job and its directory
+    path_dir = dj.path_dir
+    del dj
+    shutil.rmtree(path_dir)
+
+    # create a new job
+    dj2 = job.DownloadJob(api=api, **dj_state)
+
+    with pytest.raises(job.InvalidDownloadDirectoryError):
+        dj2.get_download_path()
+
+    assert np.isnan(dj2.get_status()["bytes total"])
+    assert dj2.traceback
+
+    # retry
+    dj2.retry_download()
+    assert dj2.get_status()["bytes total"] == 899298
+
+    # now attempt a resume-download
+    # create a truncated temporary file
+    dj2.task_download_resource()
+    dj2.task_verify_resource()
+    assert not dj2.traceback
+    assert dj2.start_time is not None
+    assert dj2.end_time is not None
+    assert dj2.path.exists()
+    assert dj2.file_bytes_downloaded == 899298
+    assert dj2.file_size == 899298
 
 
 def test_download_resume():

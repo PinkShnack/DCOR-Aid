@@ -231,23 +231,32 @@ class DownloadTableWidget(QtWidgets.QTableWidget):
         for row, job in enumerate(self.jobs):
             try:
                 status = job.get_status()
+                state = status["state"]
                 self.set_label_item(row, 0, job.job_id[:5])
-                try:
-                    title = get_download_title(job)
-                except BaseException:
-                    logger.error(traceback.format_exc())
-                    # Probably a connection error
-                    title = "-- error getting dataset title --"
-                self.set_label_item(row, 1, title)
-                self.set_label_item(row, 2, status["state"])
-                self.set_label_item(row, 3, job.get_progress_string())
-                self.set_label_item(row, 4, job.get_rate_string())
-                self.set_actions_item(row, 5, job)
-                if status["state"] == "done":
-                    self.on_download_finished(job.job_id)
             except BaseException:
+                logger.error(traceback.format_exc())
                 job.set_state("error")
                 job.traceback = traceback.format_exc()
+                state = "error"
+
+            try:
+                title = get_download_title(job)
+                progress = job.get_progress_string()
+                rate = job.get_rate_string()
+            except BaseException:
+                logger.error(traceback.format_exc())
+                # Probably a connection error
+                title = "-- error getting dataset title --"
+                progress = "unknown"
+                rate = "unknown"
+
+            self.set_label_item(row, 1, title)
+            self.set_label_item(row, 2, state)
+            self.set_label_item(row, 3, progress)
+            self.set_label_item(row, 4, rate)
+            self.set_actions_item(row, 5, job)
+            if state == "done":
+                self.on_download_finished(job.job_id)
 
             QtWidgets.QApplication.processEvents(
                 QtCore.QEventLoop.ProcessEventsFlag.AllEvents, 300)

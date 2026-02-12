@@ -30,6 +30,10 @@ JOB_STATES = [
 ]
 
 
+class InvalidDownloadDirectoryError(BaseException):
+    """Used for signaling a non-existent download directory"""
+
+
 class DownloadJob:
     def __init__(self, api, resource_id, download_path, condensed=False):
         """Wrapper for resource downloads
@@ -155,7 +159,13 @@ class DownloadJob:
         return self._dataset_dict
 
     def get_download_path(self):
-        """Return the final location to which the file is downloaded"""
+        """Return the final location to which the file is downloaded
+
+        Raises
+        ------
+        InvalidDownloadDirectoryError
+            When the target directory does not exist
+        """
         if self._download_path is None:
             if self._user_path.is_dir():
                 # Compute the resource path from the dataset dictionary
@@ -178,7 +188,7 @@ class DownloadJob:
                 # user specified an actual file
                 self._download_path = self._user_path
             else:
-                raise ValueError(
+                raise InvalidDownloadDirectoryError(
                     f"The `download_path` passed in __init__ is invalid. "
                     f"Please make sure the target directory for "
                     f"{self._user_path} exists.")
@@ -309,7 +319,7 @@ class DownloadJob:
                 data["bytes local"] = size_temp
             else:
                 data["bytes local"] = 0
-        except api_errors.APINotFoundError:
+        except (api_errors.APINotFoundError, InvalidDownloadDirectoryError):
             # The user likely tried to download the file from a different
             # host or an evil admin deleted a file.
             self.traceback = traceback.format_exc()
@@ -326,7 +336,11 @@ class DownloadJob:
     def retry_download(self):
         """Retry downloading resources when an error occured"""
         if self.state in ["abort", "error"]:
+            # Create the target download directory
+            if self._user_path is not None:
+                self._user_path.parent.mkdir(parents=True, exist_ok=True)
             self.set_state("init")
+            self.traceback = None
         else:
             raise ValueError("Can only retry download in error state!")
 
