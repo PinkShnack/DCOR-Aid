@@ -53,8 +53,8 @@ def write_bag_info(bag_path: pathlib.Path,
         f"Payload-Oxum: {get_payload_oxum(bag_path)}",
         f"Bag-Group-Identifier: {ds_dict['organization']['name']}",
         f"Bag-Count: {bag_index} of {num_bags}",
-        f"External-Identifier: {ds_dict["name"]}",
-        f"Internal-Sender-Identifier: {ds_dict["title"]}",
+        f"External-Identifier: {ds_dict['name']}",
+        f"Internal-Sender-Identifier: {ds_dict['title']}",
     ]
     (bag_path / "bag-info.txt").write_text("\n".join(lines),
                                            encoding="utf-8")
