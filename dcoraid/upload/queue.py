@@ -178,7 +178,8 @@ class UploadQueue:
         # Attempt to update the eternal jobs (important for ETags)
         for job in self.jobs:
             try:
-                if self.jobs_eternal.job_exists(job.dataset_id):
+                if (self.jobs_eternal is not None
+                        and self.jobs_eternal.job_exists(job.dataset_id)):
                     self.jobs_eternal.update_job(job)
             except BaseException:
                 self.logger.error(traceback.format_exc())
