@@ -1,3 +1,4 @@
+bagit==1.9.0
 PyQt6
 pytest
 pytest-qt

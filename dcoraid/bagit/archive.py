@@ -1,0 +1,198 @@
+import hashlib
+import json
+import pathlib
+import shutil
+import threading
+from typing import Callable
+
+from ..api import CKANAPI
+from ..dbmodel import APIInterrogator
+from ..download import DownloadJob
+from . import info, manifest
+
+
+def bag_circle(api: CKANAPI,
+               circle_name: str,
+               target_path: pathlib.Path,
+               abort_event: threading.Event = None,
+               callback: Callable = None):
+    """Download an entire circle to a target directory in BagIt format
+
+    The format follows RFC 8493 "The BagIt File Packaging Format (V1.0)".
+
+    To validate the BagIt bags:
+
+        pip install bagit
+        bagit.py --validate --quiet target_path/*
+
+    Parameters
+    ----------
+    api
+        CKANAPI for connecting to the DCOR instance
+    circle_name
+        Name of the circle to archive
+    target_path
+        Download location
+    abort_event
+        Specify a `threading.Event` to be able to abort archiving;
+        when you wish to abort `.set()` the event.
+    callback
+        Method for progress tracking (returns a float between 0 and 1)
+    """
+    # fetch total list of active datasets
+    ai = APIInterrogator(api)
+    dataset_dicts = ai.search_dataset_via_api(circles=[circle_name],
+                                              limit=0,
+                                              ret_db_extract=False)
+
+    num_datasets = len(dataset_dicts)
+
+    # sort datasets according to creation date
+    dataset_dicts = sorted(dataset_dicts, key=lambda x: x["metadata_created"])
+
+    # compute sha256 hash of all dataset IDs
+    hasher = hashlib.sha256()
+    for ds_dict in dataset_dicts:
+        hasher.update(ds_dict["id"].encode(encoding="utf-8"))
+    sha256_hash = hasher.hexdigest()
+
+    # Check whether there is already a list of dataset IDs in the directory,
+    # and if yes, compute the MD5 hash and compare it. If the comparison
+    # fails, then the user has to choose a different `target_path`, because
+    # we cannot guarantee data integrity.
+    circle_jsonlines_path = target_path / "circle.jsonlines"
+    if circle_jsonlines_path.exists():
+        lines = circle_jsonlines_path.read_text().split("\n")
+        hasher2 = hashlib.sha256()
+        for line in lines:
+            hasher2.update(json.loads(line)["id"].encode(encoding="utf-8"))
+        sha256_hash2 = hasher2.hexdigest()
+        if sha256_hash != sha256_hash2:
+            raise ValueError(
+                f"A previous attempt to archive circle {circle_name} was made "
+                f"in directory {target_path}. However, the number of datasets "
+                f"changed since then. Therefore, it is not possible to "
+                f"archive this circle to that directory.")
+    else:
+        # save list of datasets as jsonlines
+        with circle_jsonlines_path.open("w", encoding="utf-8") as f:
+            for ds_dict in dataset_dicts:
+                f.write(json.dumps(ds_dict) + "\n")
+
+    # number of digits for enumeration
+    max_digits = len(str(num_datasets))
+
+    # bag all dataset
+    for ii, ds_dict in enumerate(dataset_dicts):
+        if callback:
+            callback(ii / num_datasets)
+
+        dataset_index = ii+1
+        prefix = str(dataset_index).zfill(max_digits)
+        bag_path = target_path / f"{prefix}_{ds_dict['name']}"
+
+        if not manifest.is_bagged(bag_path):
+            bag_dataset(api=api,
+                        ds_dict=ds_dict,
+                        dataset_index=dataset_index,
+                        num_datasets=num_datasets,
+                        bag_path=bag_path,
+                        abort_event=abort_event)
+        if abort_event is not None and abort_event.is_set():
+            return
+    if callback:
+        callback(1)
+
+
+def bag_dataset(api: CKANAPI,
+                ds_dict: dict,
+                bag_path: pathlib.Path,
+                abort_event: threading.Event = None,
+                dataset_index: int = 1,
+                num_datasets: int = 1,
+                ):
+    """Download a dataset to a target directory in BagIt format
+
+    Parameters
+    ----------
+    api
+        CKANAPI for connecting to the DCOR instance
+    ds_dict
+        CKAN dataset dictionary
+    bag_path
+        Path of the bag
+    abort_event
+        Event for aborting (see :func:`bag_circle`)
+    dataset_index
+        Index of this dataset in the circle
+    num_datasets
+        Total number of datasets in the circle
+    """
+    # clear/create download directory
+    if bag_path.exists():
+        shutil.rmtree(bag_path)
+    bag_path.mkdir(parents=True, exist_ok=True)
+    data_path = bag_path / "data"
+    data_path.mkdir(parents=True, exist_ok=True)
+
+    # dataset dictionary
+    meta = json.dumps(ds_dict, indent=2, sort_keys=True)
+    (data_path / "dataset.json").write_text(meta)
+
+    # download all resources
+    for res_dict in ds_dict["resources"]:
+        if abort_event is not None and abort_event.is_set():
+            return
+
+        # resource
+        download_resource(api=api,
+                          bag_path=bag_path,
+                          res_dict=res_dict,
+                          condensed=False)
+
+        # condensed resource
+        if res_dict["name"].endswith(".rtdc"):
+            download_resource(api=api,
+                              bag_path=bag_path,
+                              res_dict=res_dict,
+                              condensed=True)
+
+    # create BagIt files
+    info.write_bag_info(bag_path=bag_path,
+                        bag_index=dataset_index,
+                        num_bags=num_datasets,
+                        ds_dict=ds_dict)
+
+    # create BagIt manifest files
+    manifest.write_manifest(bag_path=bag_path,
+                            ds_dict=ds_dict)
+
+
+def download_resource(api: CKANAPI,
+                      bag_path: pathlib.Path,
+                      res_dict: dict,
+                      condensed: bool):
+    """Download and verify a resource from DCOR
+
+    Parameters
+    api
+        CKANAPI for connecting to the DCOR instance
+    bag_path
+        Path of the bag
+    res_dict
+        CKAN resource dictionary
+    condensed
+        Whether to download the condensed resource (or the original resource)
+    """
+    data_path = bag_path / "data"
+    data_path.mkdir(parents=True, exist_ok=True)
+    dl_path = data_path / res_dict["name"]
+    if condensed:
+        dl_path = dl_path.with_name(dl_path.stem + "_condensed.rtdc")
+    dj = DownloadJob(api=api,
+                     resource_id=res_dict["id"],
+                     download_path=dl_path,
+                     condensed=condensed
+                     )
+    dj.task_download_resource()
+    dj.task_verify_resource()

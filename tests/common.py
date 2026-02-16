@@ -19,6 +19,7 @@ from dcoraid.upload import UploadQueue
 SERVER = os.environ.get("DCORAID_TEST_SERVER", "dcor-dev.mpl.mpg.de")
 
 dpath = pathlib.Path(__file__).parent / "data" / "calibration_beads_47.rtdc"
+tpath = pathlib.Path(__file__).parent / "data" / "text_file.txt"
 
 
 def get_api():
@@ -54,14 +55,14 @@ def get_test_defaults():
     }
 
 
-def make_dataset_dict(hint=""):
+def make_dataset_dict(hint="", circle=None):
     defaults = get_test_defaults()
     space = " " if hint else ""
     dataset_dict = {
         "title": f"A test dataset {hint}{space}{time.time()}",
         "private": True,
         "license_id": "CC0-1.0",
-        "owner_org": defaults["circle"],
+        "owner_org": circle or defaults["circle"],
         "authors": defaults["user_name"],
     }
     return dataset_dict
@@ -128,16 +129,23 @@ def make_dataset_dict_full_fake(org_id=None, ds_id=None, user_id=None,
 
 
 @functools.lru_cache()
-def make_dataset_for_download(seed=0, wait_for_resource_metadata=False):
+def make_dataset_for_download(seed=0, add_text_file=False, circle=None):
     """Set `seed` to get a new dataset (in case you need fresh resource ids)"""
+    defaults = get_test_defaults()
+
     api = get_api()
     # create some metadata
-    dataset_dict = make_dataset_dict(hint="test-download-dataset")
+    dataset_dict = make_dataset_dict(hint="test-download-dataset",
+                                     circle=circle or defaults["circle"],
+                                     )
     # post dataset creation request
     data = dataset_create(dataset_dict=dataset_dict, api=api)
     joblist = UploadQueue(api=api)
+    paths = [dpath]
+    if add_text_file:
+        paths.append(tpath)
     joblist.new_job(dataset_id=data["id"],
-                    paths=[dpath])
+                    paths=paths)
     wait_for_job(joblist, data["id"],
                  wait_for_resource_metadata=True)
     return api.get("package_show", id=data["id"])
