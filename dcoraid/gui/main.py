@@ -25,7 +25,7 @@ from .api import get_ckan_api
 from .preferences import PreferencesDialog
 from .status_widget import StatusWidget
 from . import updater
-from .wizard import SetupWizard
+from .wizard_init import SetupWizard
 
 
 file_manager = ExitStack()
@@ -362,8 +362,8 @@ class DCORAid(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def on_wizard(self):
-        self.wizard = SetupWizard(self)
-        self.wizard.exec()
+        self.wizard_init = SetupWizard(self)
+        self.wizard_init.exec()
 
 
 class UpdateDatabaseWorker(QtCore.QObject):

@@ -45,7 +45,7 @@ class SetupWizard(QtWidgets.QWizard):
 
     def __init__(self, *args, **kwargs):
         super(SetupWizard, self).__init__(None)
-        ref_ui = resources.files("dcoraid.gui.wizard") / "wizard.ui"
+        ref_ui = resources.files("dcoraid.gui.wizard_init") / "wizard_init.ui"
         with resources.as_file(ref_ui) as path_ui:
             uic.loadUi(path_ui, self)
 
