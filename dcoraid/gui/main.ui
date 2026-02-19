@@ -181,7 +181,8 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionSetupWizard"/>
+    <addaction name="actionInitWizard"/>
+    <addaction name="actionBagItWizard"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
     <addaction name="separator"/>
@@ -207,8 +208,7 @@
   </action>
   <action name="actionQuit">
    <property name="icon">
-    <iconset theme="times-circle">
-     <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
+    <iconset theme="times-circle"/>
    </property>
    <property name="text">
     <string>Quit</string>
@@ -221,8 +221,7 @@
   </action>
   <action name="actionPreferences">
    <property name="icon">
-    <iconset theme="cogs">
-     <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
+    <iconset theme="cogs"/>
    </property>
    <property name="text">
     <string>Preferences...</string>
@@ -237,13 +236,20 @@
     <string>About</string>
    </property>
   </action>
-  <action name="actionSetupWizard">
+  <action name="actionInitWizard">
    <property name="icon">
-    <iconset theme="hat-wizard">
-     <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
+    <iconset theme="hat-wizard"/>
    </property>
    <property name="text">
     <string>Setup wizard...</string>
+   </property>
+  </action>
+  <action name="actionBagItWizard">
+   <property name="icon">
+    <iconset theme="folder-tree"/>
+   </property>
+   <property name="text">
+    <string>Archive to BagIt format...</string>
    </property>
   </action>
  </widget>

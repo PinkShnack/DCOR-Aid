@@ -60,12 +60,14 @@ def bag_circle(api: CKANAPI,
     # and if yes, compute the MD5 hash and compare it. If the comparison
     # fails, then the user has to choose a different `target_path`, because
     # we cannot guarantee data integrity.
+    target_path.mkdir(parents=True, exist_ok=True)
     circle_jsonlines_path = target_path / "circle.jsonlines"
     if circle_jsonlines_path.exists():
         lines = circle_jsonlines_path.read_text().split("\n")
         hasher2 = hashlib.sha256()
         for line in lines:
-            hasher2.update(json.loads(line)["id"].encode(encoding="utf-8"))
+            if line.strip():
+                hasher2.update(json.loads(line)["id"].encode(encoding="utf-8"))
         sha256_hash2 = hasher2.hexdigest()
         if sha256_hash != sha256_hash2:
             raise ValueError(
@@ -87,8 +89,8 @@ def bag_circle(api: CKANAPI,
         if callback:
             callback(ii / num_datasets)
 
-        dataset_index = ii+1
-        prefix = str(dataset_index).zfill(max_digits)
+        dataset_index = ii + 1
+        prefix = str(dataset_index).zfill(max_digits+1)
         bag_path = target_path / f"{prefix}_{ds_dict['name']}"
 
         if not manifest.is_bagged(bag_path):
@@ -148,14 +150,24 @@ def bag_dataset(api: CKANAPI,
         download_resource(api=api,
                           bag_path=bag_path,
                           res_dict=res_dict,
-                          condensed=False)
+                          condensed=False,
+                          abort_event=abort_event,
+                          )
+
+        if abort_event is not None and abort_event.is_set():
+            return
 
         # condensed resource
         if res_dict["name"].endswith(".rtdc"):
             download_resource(api=api,
                               bag_path=bag_path,
                               res_dict=res_dict,
-                              condensed=True)
+                              condensed=True,
+                              abort_event=abort_event,
+                              )
+
+    if abort_event is not None and abort_event.is_set():
+        return
 
     # create BagIt files
     info.write_bag_info(bag_path=bag_path,
@@ -171,7 +183,9 @@ def bag_dataset(api: CKANAPI,
 def download_resource(api: CKANAPI,
                       bag_path: pathlib.Path,
                       res_dict: dict,
-                      condensed: bool):
+                      condensed: bool,
+                      abort_event: threading.Event = None,
+                      ):
     """Download and verify a resource from DCOR
 
     Parameters
@@ -183,6 +197,8 @@ def download_resource(api: CKANAPI,
         CKAN resource dictionary
     condensed
         Whether to download the condensed resource (or the original resource)
+    abort_event
+        For stopping the download process prematurely
     """
     data_path = bag_path / "data"
     data_path.mkdir(parents=True, exist_ok=True)
@@ -192,7 +208,14 @@ def download_resource(api: CKANAPI,
     dj = DownloadJob(api=api,
                      resource_id=res_dict["id"],
                      download_path=dl_path,
-                     condensed=condensed
+                     condensed=condensed,
                      )
-    dj.task_download_resource()
+    if abort_event is not None and abort_event.is_set():
+        return
+
+    dj.task_download_resource(abort_event=abort_event)
+
+    if abort_event is not None and abort_event.is_set():
+        return
+
     dj.task_verify_resource()

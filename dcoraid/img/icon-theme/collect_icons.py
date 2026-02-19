@@ -6,6 +6,8 @@ To install the KDE breeze theme:
 
 Fontawesome icons are downloaded from GitHub.
 
+    https://fontawesome.com/v6/search
+
 This script must be run on a linux machine. Please make sure
 that `local_root` is correct.
 """
@@ -58,6 +60,7 @@ icons = {
         "exclamation-triangle",
         "filter",
         "folder",
+        "folder-tree",
         "globe",
         "hat-wizard",
         "hourglass",

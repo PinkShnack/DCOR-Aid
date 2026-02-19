@@ -35,7 +35,8 @@ def test_download_abort(tmp_path):
                          )
     assert dj.state == "init"
 
-    thread = threading.Thread(target=lambda: dj.task_download_resource(event_abort))
+    thread = threading.Thread(
+        target=lambda: dj.task_download_resource(event_abort))
     thread.start()
 
     for ii in range(100):

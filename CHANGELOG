@@ -1,5 +1,6 @@
 1.1.0
  - feat: add circle archiving in the BagIt (RFC 8493) format
+ - feat: add circle archiving wizard GUI
  - fix: handle resource downloads whose target directory got deleted
  - fix: check for existence of persistent job list in upload
  - enh: allow to programmatically abort download jobs

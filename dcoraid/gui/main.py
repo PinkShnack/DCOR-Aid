@@ -25,7 +25,8 @@ from .api import get_ckan_api
 from .preferences import PreferencesDialog
 from .status_widget import StatusWidget
 from . import updater
-from .wizard_init import SetupWizard
+from .wizard_bagit import BagItWizard
+from .wizard_init import InitWizard
 
 
 file_manager = ExitStack()
@@ -100,7 +101,8 @@ class DCORAid(QtWidgets.QMainWindow):
         self.menubar.setNativeMenuBar(False)
         # File menu
         self.actionPreferences.triggered.connect(self.dlg_pref.show)
-        self.actionSetupWizard.triggered.connect(self.on_wizard)
+        self.actionInitWizard.triggered.connect(self.on_wizard_init)
+        self.actionBagItWizard.triggered.connect(self.on_wizard_bagit)
         # Help menu
         self.actionSoftware.triggered.connect(self.on_action_software)
         self.actionAbout.triggered.connect(self.on_action_about)
@@ -361,8 +363,13 @@ class DCORAid(QtWidgets.QMainWindow):
             self.logger.error("Progress dialog not defined")
 
     @QtCore.pyqtSlot()
-    def on_wizard(self):
-        self.wizard_init = SetupWizard(self)
+    def on_wizard_bagit(self):
+        self.wizard_bagit = BagItWizard(self)
+        self.wizard_bagit.exec()
+
+    @QtCore.pyqtSlot()
+    def on_wizard_init(self):
+        self.wizard_init = InitWizard(self)
         self.wizard_init.exec()
 
 
