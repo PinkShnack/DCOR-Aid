@@ -2,6 +2,7 @@
  - feat: add circle archiving in the BagIt (RFC 8493) format
  - fix: handle resource downloads whose target directory got deleted
  - fix: check for existence of persistent job list in upload
+ - enh: allow to programmatically abort download jobs
  - ref: move setup wizard to `wizard_init` submodule
 1.0.0
  - fix: do not attempt to updates non-existent eternal jobs on exit

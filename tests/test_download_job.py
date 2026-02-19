@@ -1,5 +1,7 @@
 import shutil
 import tempfile
+import threading
+import time
 from unittest import mock
 import uuid
 
@@ -20,6 +22,37 @@ def test_initialize():
                          resource_id=ds_dict["resources"][0]["id"],
                          download_path=td)
     assert dj.state == "init"
+
+
+def test_download_abort(tmp_path):
+    # leukocytes.rtdc
+    res_id = "f7fa778f-6abd-1b53-ae5f-9ce12601d6f8"
+    event_abort = threading.Event()
+    api = common.get_api()
+    dj = job.DownloadJob(api=api,
+                         resource_id=res_id,
+                         download_path=tmp_path,
+                         )
+    assert dj.state == "init"
+
+    thread = threading.Thread(target=lambda: dj.task_download_resource(event_abort))
+    thread.start()
+
+    for ii in range(100):
+        bytes_dl = dj.get_status()["bytes downloaded"]
+        if bytes_dl > 1024*1024:
+            break
+        time.sleep(.1)
+
+    event_abort.set()
+    thread.join(timeout=10)
+
+    assert dj.get_status()["state"] == "abort"
+
+    # There should be an incomplete temporary download file
+    assert not dj.path.exists()
+    assert dj.path_temp.exists()
+    assert dj.path_temp.stat().st_size < dj.get_status()["bytes total"] - 1
 
 
 def test_download_deleted_directory():

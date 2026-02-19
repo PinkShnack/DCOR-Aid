@@ -3,6 +3,7 @@ import hashlib
 import logging
 import pathlib
 import shutil
+import threading
 import traceback
 
 import time
@@ -357,7 +358,7 @@ class DownloadJob:
                 logger.error(f"{self.traceback}")
         self.state = state
 
-    def task_download_resource(self):
+    def task_download_resource(self, abort_event: threading.Event = None):
         """Start the download
 
         The progress of the download is monitored and written
@@ -434,6 +435,12 @@ class DownloadJob:
                                             # for condensed data.
                                             and not self.condensed):
                                         hasher.update(chunk)
+                                    if (abort_event is not None
+                                            and abort_event.is_set()):
+                                        logger.warning(f"Aborting job {self}")
+                                        self.set_state("abort")
+                                        return
+
                     self.sha256sum_dl = hasher.hexdigest()
                     self.end_time = time.perf_counter()
                     self.set_state("downloaded")
