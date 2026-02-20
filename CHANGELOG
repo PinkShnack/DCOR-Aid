@@ -3,6 +3,7 @@
  - feat: add circle archiving wizard GUI
  - fix: handle resource downloads whose target directory got deleted
  - fix: check for existence of persistent job list in upload
+ - fix: reduce user circle list cache lifetime to 10 s
  - enh: allow to programmatically abort download jobs
  - ref: move setup wizard to `wizard_init` submodule
 1.0.0

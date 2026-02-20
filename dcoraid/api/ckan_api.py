@@ -86,6 +86,16 @@ class CKANAPI:
                 kwargs = {"backend": "sqlite",
                           "cache_name": pathlib.Path(caching)}
             self.req_ses = requests_cache.CachedSession(urls_expire_after={
+                # The first item that matches is used, so we have to specify
+                # longer URLs with shorted lifetime first.
+                # API calls with parameters
+                self.api_url + "package_search*": 10,
+                self.api_url + "package_collaborator_list_for_user*": 60,
+                self.api_url + "organization_list_for_user*": 10,
+                self.api_url + "group_list_authz*": 60,
+                self.api_url + "dataset_followee_list*": 3600,
+                self.api_url + "package_show*": requests_cache.DO_NOT_CACHE,
+                self.api_url + "resource_show*": requests_cache.DO_NOT_CACHE,
                 # API calls without parameters; seconds cached
                 self.api_url + "user_show": 5,
                 self.api_url + "user_autocomplete": 30,
@@ -93,14 +103,6 @@ class CKANAPI:
                 self.api_url + "user_list": 30,
                 self.api_url + "status_show": 60,
                 self.api_url + "organization_list": 60,
-                # API calls with parameters
-                self.api_url + "package_search*": 10,
-                self.api_url + "package_collaborator_list_for_user*": 60,
-                self.api_url + "organization_list_for_user*": 60,
-                self.api_url + "group_list_authz*": 60,
-                self.api_url + "dataset_followee_list*": 3600,
-                self.api_url + "package_show*": requests_cache.DO_NOT_CACHE,
-                self.api_url + "resource_show*": requests_cache.DO_NOT_CACHE,
                 "*": requests_cache.DO_NOT_CACHE,
                 },
                 **kwargs)

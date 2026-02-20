@@ -9,7 +9,7 @@ from ..api import get_ckan_api
 def get_user_circle_dicts():
     """Conveniently cache the organization list for the user
 
-    You must call `self._get_user_circle_dicts.cache_clear`
+    You must call `get_user_circle_dicts.cache_clear`
     if the circle list changes (e.g. because you added one).
     """
     api = get_ckan_api()
@@ -34,18 +34,17 @@ def ask_for_new_circle(parent_widget):
     text, ok_pressed = QtWidgets.QInputDialog.getText(
         parent_widget,
         "Circle required",
-        "You do not have access to any existing Circles. To upload\n"
-        + "datasets, you need to be either Editor or Admin in\n"
-        + "a Circle. You may create a Circle now or cancel and ask\n"
-        + "a colleague to add you to a Circle (Your user name is "
-        + "'{}').".format(ud["name"])
-        + "\n\nTo proceed with Circle creation, please choose a name:",
+        f"You do not have access to any existing Circles. To upload\n"
+        f"datasets, you need to be either Editor or Admin in\n"
+        f"a Circle. You may create a Circle now or cancel and ask\n"
+        f"a colleague to add you to a Circle (Your user name is "
+        f"'{ud['name']}')."
+        f"\n\nTo proceed with Circle creation, please choose a name:",
         QtWidgets.QLineEdit.EchoMode.Normal,
         f"{name}'s Circle")
     if ok_pressed and text != '':
-        cname = "user-circle-{}".format(ud["name"])
         cdict = api.post("organization_create",
-                         data={"name": cname,
+                         data={"name": f"user-circle-{ud['name']}",
                                "title": text.strip(),
                                })
         # invalidate cache, because now we have a new circle
