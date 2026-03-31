@@ -134,7 +134,7 @@ class DCORAid(QtWidgets.QMainWindow):
         if ((self.settings.value("user scenario", "") != "anonymous")
                 and not self.settings.value("auth/api key", "")):
             # User has not done anything yet
-            self.on_wizard()
+            self.on_wizard_init()
 
         # check for updates
         do_update = int(self.settings.value("check for updates", "1"))
