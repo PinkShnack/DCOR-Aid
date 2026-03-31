@@ -11,6 +11,7 @@ name = "dcoraid"
 authors = [
     # In alphabetical order.
     {name = "Paul Müller"},
+    {name = "Eoghan O'Connell"},
     {name = "Raghava Alajangi"},
 ]
 maintainers = [
