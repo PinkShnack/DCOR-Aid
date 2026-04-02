@@ -42,7 +42,7 @@ class BagItWizard(QtWidgets.QWizard):
 
         # fetch the circles that the user is a member of
         circles = self.api.get("organization_list_for_user",
-                               permission="create_dataset")
+                               permission="read")
         for ci in circles:
             self.comboBox_circles.addItem(
                 ci["title"] if ci["title"] else ci["name"], ci["name"])

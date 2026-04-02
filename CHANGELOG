@@ -1,3 +1,5 @@
+1.1.2
+ - fix: archiving to BagIt format circle selection did not include all circles
 1.1.1
  - fix: first-time initialization failed (#95)
 1.1.0
